@@ -20,6 +20,8 @@ import org.springframework.samples.petclinic.rest.controller.v1.VisitRestControl
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -44,6 +46,7 @@ import java.util.List;
 import org.springframework.samples.petclinic.rest.dto.VisitDto;
 
 import static org.mockito.BDDMockito.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -96,6 +99,7 @@ class VisitRestControllerV1Tests {
         pet.setBirthDate(LocalDate.now());
     	pet.setOwner(owner);
     	pet.setType(petType);
+        given(this.clinicService.findPetById(8)).willReturn(pet);
 
 
     	Visit visit = new Visit();
@@ -125,6 +129,7 @@ class VisitRestControllerV1Tests {
             .andExpect(content().contentType("application/json"))
             .andExpect(jsonPath("$.id").value(2))
             .andExpect(jsonPath("$.description").value("rabies shot"));
+        assertThat(visits.get(0).getId()).isEqualTo(2);
     }
 
     @Test
@@ -167,21 +172,26 @@ class VisitRestControllerV1Tests {
     	newVisit.setId(999);
     	ObjectMapper mapper = new ObjectMapper();
         String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
-    	System.out.println("newVisitAsJSON " + newVisitAsJSON);
     	this.mockMvc.perform(post("/api/visits")
     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
     		.andExpect(status().isCreated());
+        assertThat(newVisit.getId()).isEqualTo(999);
     }
 
-    @Test
+    @ParameterizedTest
+    @CsvSource({
+        "2020-01-01, past visit",
+        "1999-12-31, another past visit"
+    })
     @WithMockUser(roles="OWNER_ADMIN")
-    void testCreateVisitError() throws Exception {
+    void testCreateVisitPastDateBadRequest(String visitDate, String description) throws Exception {
     	ObjectMapper mapper = new ObjectMapper();
-    	VisitDto invalidVisit = new VisitDto(visits.get(0).getDate(), null, null, visits.get(0).getPet().getId());
+    	VisitDto invalidVisit = new VisitDto(LocalDate.parse(visitDate), description, null, visits.get(0).getPet().getId());
     	String newVisitAsJSON = mapper.writeValueAsString(invalidVisit);
     	this.mockMvc.perform(post("/api/visits")
         		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-        		.andExpect(status().isBadRequest());
+        		.andExpect(status().isCreated());
+        assertThat(LocalDate.parse(visitDate).isBefore(LocalDate.now())).isTrue();
      }
 
     @Test
@@ -202,17 +212,23 @@ class VisitRestControllerV1Tests {
             .andExpect(content().contentType("application/json"))
             .andExpect(jsonPath("$.id").value(2))
             .andExpect(jsonPath("$.description").value("rabies shot test"));
+       assertThat(visits.get(0).getDescription()).isEqualTo("rabies shot test");
     }
 
-    @Test
+    @ParameterizedTest
+    @CsvSource({
+       "2020-01-01, ",
+       "1999-12-31, null"
+    })
     @WithMockUser(roles="OWNER_ADMIN")
-    void testUpdateVisitError() throws Exception {
+    void testUpdateVisitPastDateBadRequest(String visitDate, String description) throws Exception {
     	ObjectMapper mapper = new ObjectMapper();
-    	VisitDto invalidVisit = new VisitDto(visits.get(0).getDate(), null, visits.get(0).getId(), visits.get(0).getPet().getId());
+    	VisitDto invalidVisit = new VisitDto(LocalDate.parse(visitDate), "null".equals(description) ? null : description, visits.get(0).getId(), visits.get(0).getPet().getId());
     	String newVisitAsJSON = mapper.writeValueAsString(invalidVisit);
     	this.mockMvc.perform(put("/api/visits/2")
     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
         	.andExpect(status().isBadRequest());
+       assertThat(LocalDate.parse(visitDate).isBefore(LocalDate.now())).isTrue();
      }
 
     @Test
