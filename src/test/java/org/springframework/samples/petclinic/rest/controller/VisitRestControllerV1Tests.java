@@ -41,6 +41,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.samples.petclinic.rest.dto.VisitDto;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -175,11 +176,9 @@ class VisitRestControllerV1Tests {
     @Test
     @WithMockUser(roles="OWNER_ADMIN")
     void testCreateVisitError() throws Exception {
-    	Visit newVisit = visits.get(0);
-    	newVisit.setId(null);
-        newVisit.setDescription(null);
     	ObjectMapper mapper = new ObjectMapper();
-        String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
+    	VisitDto invalidVisit = new VisitDto(visits.get(0).getDate(), null, null, visits.get(0).getPet().getId());
+    	String newVisitAsJSON = mapper.writeValueAsString(invalidVisit);
     	this.mockMvc.perform(post("/api/visits")
         		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
         		.andExpect(status().isBadRequest());
@@ -189,10 +188,9 @@ class VisitRestControllerV1Tests {
     @WithMockUser(roles="OWNER_ADMIN")
     void testUpdateVisitSuccess() throws Exception {
     	given(this.clinicService.findVisitById(2)).willReturn(visits.get(0));
-    	Visit newVisit = visits.get(0);
-    	newVisit.setDescription("rabies shot test");
     	ObjectMapper mapper = new ObjectMapper();
-        String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
+    	VisitDto updatedVisit = new VisitDto(visits.get(0).getDate(), "rabies shot test", visits.get(0).getId(), visits.get(0).getPet().getId());
+    	String newVisitAsJSON = mapper.writeValueAsString(updatedVisit);
     	this.mockMvc.perform(put("/api/visits/2")
     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
         	.andExpect(content().contentType("application/json"))
@@ -209,10 +207,9 @@ class VisitRestControllerV1Tests {
     @Test
     @WithMockUser(roles="OWNER_ADMIN")
     void testUpdateVisitError() throws Exception {
-    	Visit newVisit = visits.get(0);
-        newVisit.setDescription(null);
     	ObjectMapper mapper = new ObjectMapper();
-        String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
+    	VisitDto invalidVisit = new VisitDto(visits.get(0).getDate(), null, visits.get(0).getId(), visits.get(0).getPet().getId());
+    	String newVisitAsJSON = mapper.writeValueAsString(invalidVisit);
     	this.mockMvc.perform(put("/api/visits/2")
     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
         	.andExpect(status().isBadRequest());

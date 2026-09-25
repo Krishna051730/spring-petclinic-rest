@@ -2303,7 +2303,6 @@ components:
               minimum: 0
               example: 1
           required:
-            - id
             - petId
     PetTypeFields:
       title: PetType fields

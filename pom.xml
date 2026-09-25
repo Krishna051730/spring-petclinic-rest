@@ -25,6 +25,7 @@
         <jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <jaxb-api.version>2.3.1</jaxb-api.version>
+        <gmavenplus-plugin.version>4.2.1</gmavenplus-plugin.version>
 
         <!-- Maven plugins and supporting properties -->
         <maven.checkstyle-plugin.version>3.6.0</maven.checkstyle-plugin.version>
@@ -178,6 +179,11 @@
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>5.0.1</version>
         </dependency>
     </dependencies>
 
@@ -402,6 +408,84 @@
                             <sources>
                                 <source>target/generated-sources/openapi/src/main/java</source>
                             </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>${gmavenplus-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>rewrite-visit-dto-as-record</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>execute</goal>
+                        </goals>
+                        <configuration>
+                            <scripts>
+                                <script><![CDATA[
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+
+Path visitDtoPath = project.basedir.toPath()
+    .resolve("target/generated-sources/openapi/src/main/java/org/springframework/samples/petclinic/rest/dto/VisitDto.java")
+
+if (!Files.exists(visitDtoPath)) {
+    return
+}
+
+String visitDtoRecord = """package org.springframework.samples.petclinic.rest.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.jspecify.annotations.Nullable;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
+
+/**
+ * A booking for a vet visit.
+ */
+@Schema(name = "Visit", description = "A booking for a vet visit.")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2026-09-22T11:55:12.510808+05:30[Asia/Kolkata]", comments = "Generator version: 7.25.0")
+public record VisitDto(
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    @Valid
+    @Schema(name = "date", example = "2013-01-01", description = "The date of the visit.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @JsonProperty("date")
+    @Nullable
+    LocalDate date,
+
+    @NotNull
+    @Size(min = 1, max = 255)
+    @Schema(name = "description", example = "rabies shot", description = "The description for the visit.", requiredMode = Schema.RequiredMode.REQUIRED)
+    @JsonProperty("description")
+    String description,
+
+    @Min(0)
+    @Schema(name = "id", accessMode = Schema.AccessMode.READ_ONLY, example = "1", description = "The ID of the visit.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @JsonProperty("id")
+    Integer id,
+
+    @NotNull
+    @Min(0)
+    @Schema(name = "petId", example = "1", description = "The ID of the pet.", requiredMode = Schema.RequiredMode.REQUIRED)
+    @JsonProperty("petId")
+    Integer petId
+) {}
+"""
+
+Files.writeString(visitDtoPath, visitDtoRecord, StandardCharsets.UTF_8)
+                                ]]></script>
+                            </scripts>
                         </configuration>
                     </execution>
                 </executions>

@@ -123,18 +123,10 @@ class OwnerRestControllerV1Tests {
             .type(petType));
 
         visits = new ArrayList<>();
-        VisitDto visit = new VisitDto();
-        visit.setId(2);
-        visit.setPetId(pet.getId());
-        visit.setDate(LocalDate.now());
-        visit.setDescription("rabies shot");
+        VisitDto visit = new VisitDto(LocalDate.now(), "rabies shot", 2, pet.getId());
         visits.add(visit);
 
-        visit = new VisitDto();
-        visit.setId(3);
-        visit.setPetId(pet.getId());
-        visit.setDate(LocalDate.now());
-        visit.setDescription("neutered");
+        visit = new VisitDto(LocalDate.now(), "neutered", 3, pet.getId());
         visits.add(visit);
     }
 
@@ -146,8 +138,7 @@ class OwnerRestControllerV1Tests {
     }
 
     private VisitDto getTestVisitForPet(final int id) {
-        VisitDto visit = new VisitDto();
-        return visit.id(id).date(LocalDate.now()).description("test" + id);
+        return new VisitDto(LocalDate.now(), "test" + id, id, null);
     }
 
     @Test
@@ -519,8 +510,8 @@ class OwnerRestControllerV1Tests {
     @Test
     @WithMockUser(roles = "OWNER_ADMIN")
     void testCreateVisitSuccess() throws Exception {
-        VisitDto newVisit = visits.get(0);
-        newVisit.setId(999);
+        VisitDto existingVisit = visits.get(0);
+        VisitDto newVisit = new VisitDto(existingVisit.date(), existingVisit.description(), 999, existingVisit.petId());
         ObjectMapper mapper = new ObjectMapper();
         String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisit(newVisit));
         System.out.println("newVisitAsJSON " + newVisitAsJSON);
